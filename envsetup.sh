@@ -59,7 +59,7 @@ EOF
     local T=$(gettop)
     local A=""
     local i
-    for i in `cat $T/build/envsetup.sh $T/vendor/aosp/build/envsetup.sh | sed -n "/^[[:blank:]]*function /s/function \([a-z_]*\).*/\1/p" | sort | uniq`; do
+    for i in `cat $T/build/envsetup.sh | sed -n "/^[[:blank:]]*function /s/function \([a-z_]*\).*/\1/p" | sort | uniq`; do
       A="$A $i"
     done
     echo $A
@@ -70,8 +70,8 @@ function build_build_var_cache()
 {
     local T=$(gettop)
     # Grep out the variable names from the script.
-    cached_vars=(`cat $T/build/envsetup.sh $T/vendor/aosp/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
-    cached_abs_vars=(`cat $T/build/envsetup.sh $T/vendor/aosp/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_abs_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
+    cached_vars=(`cat $T/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
+    cached_abs_vars=(`cat $T/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_abs_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
     # Call the build system to dump the "<val>=<value>" pairs as a shell script.
     build_dicts_script=`\builtin cd $T; build/soong/soong_ui.bash --dumpvars-mode \
                         --vars="${cached_vars[*]}" \
@@ -737,20 +737,7 @@ function lunch()
         return 1
     fi
 
-    if ! check_product $product
-    then
-        # if we can't find a product, try to grab it off the PixelExperience GitHub
-        T=$(gettop)
-        cd $T > /dev/null
-        vendor/aosp/build/tools/roomservice.py $product
-        cd - > /dev/null
-        check_product $product
-    else
-        T=$(gettop)
-        cd $T > /dev/null
-        vendor/aosp/build/tools/roomservice.py $product true
-        cd - > /dev/null
-    fi
+    check_product $product
 
     TARGET_PRODUCT=$product \
     TARGET_BUILD_VARIANT=$variant \
@@ -779,8 +766,6 @@ function lunch()
     export TARGET_BUILD_TYPE=release
 
     [[ -n "${ANDROID_QUIET_BUILD:-}" ]] || echo
-
-    fixup_common_out_dir
 
     set_stuff_for_environment
     [[ -n "${ANDROID_QUIET_BUILD:-}" ]] || printconfig
@@ -1914,5 +1899,3 @@ source_vendorsetup
 addcompletions
 
 export ANDROID_BUILD_TOP=$(gettop)
-
-. $ANDROID_BUILD_TOP/vendor/aosp/build/envsetup.sh
